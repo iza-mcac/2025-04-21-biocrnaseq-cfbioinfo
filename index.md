@@ -5,10 +5,10 @@ layout: workshop      # DON'T CHANGE THIS.
 # https://carpentries.github.io/workshop-template/customization/index.html
 venue: "Universidade Federal de Minas Gerais"        # brief name of the institution that hosts the workshop without address (e.g., "Euphoric State University")
 address: "Centro de Atividades Didáticas 1 - Auditório Nobre, Av. Pres. Antônio Carlos, 6627 - Pampulha, Belo Horizonte - MG, 31270-901"      # full street address of workshop (e.g., "Room A, 123 Forth Street, Blimingen, Euphoria"), videoconferencing URL, or 'online'
-country: "Brazil"      # lowercase two-letter ISO country code such as "fr" (see https://en.wikipedia.org/wiki/ISO_3166-1#Current_codes) for the institution that hosts the workshop
+country: "br"      # lowercase two-letter ISO country code such as "fr" (see https://en.wikipedia.org/wiki/ISO_3166-1#Current_codes) for the institution that hosts the workshop
 language: "pt"     # lowercase two-letter ISO language code such as "fr" (see https://en.wikipedia.org/wiki/List_of_ISO_639-1_codes) for the workshop
-latitude: "-19.91"        # decimal latitude of workshop venue (use https://www.latlong.net/)
-longitude: "-43.93"       # decimal longitude of the workshop venue (use https://www.latlong.net)
+latitude: "-19"        # decimal latitude of workshop venue (use https://www.latlong.net/)
+longitude: "-43"       # decimal longitude of the workshop venue (use https://www.latlong.net)
 humandate: "Mar 21, 2025"    # human-readable dates for the workshop (e.g., "Feb 17-18, 2020")
 humantime: "8:30 am - 6:30 pm"    # human-readable times for the workshop e.g., "9:00 am - 4:30 pm CEST (7:00 am - 2:30 pm UTC)"
 startdate: 2025-04-21      # machine-readable start date for the workshop in YYYY-MM-DD format like 2015-01-01
