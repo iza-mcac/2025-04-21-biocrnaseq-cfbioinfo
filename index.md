@@ -98,10 +98,6 @@ the pitch.
 {% include lc/intro.html %}
 {% endif %}
 
-{% if site.pilot %}
-This is a pilot workshop, testing out a lesson that is still under development. The lesson authors would appreciate any feedback you can give them about the lesson content and suggestions for how it could be further improved.
-{% endif %}
-
 {% comment %}
 AUDIENCE
 
@@ -134,7 +130,7 @@ address.
 {% endif %}
 {% if page.latitude and page.longitude and online == "false" %}
 <p id="where">
-  <strong>Where:</strong>
+  <strong>Onde+:</strong>
   {{page.address}}.
   Get directions with
   <a href="//www.openstreetmap.org/?mlat={{page.latitude}}&mlon={{page.longitude}}&zoom=16">OpenStreetMap</a>
@@ -146,15 +142,15 @@ address.
   {%endif %}
 </p>
 {% elsif online == "true_public" %}
-<p id="where">
-  <strong>Where:</strong>
+<p id="Onde">
+  <strong>Onde:</strong>
   online at <a href="{{page.address}}">{{page.address}}</a>.
   If you need a password or other information to access the training,
   the instructor will pass it on to you before the workshop.
 </p>
 {% elsif online == "true_private" %}
-<p id="where">
-  <strong>Where:</strong> This training will take place online.
+<p id="Onde">
+  <strong>Onde:</strong> This training will take place online.
   The instructors will provide you with the information you will need to connect to this meeting.
 </p>
 {% endif %}
@@ -165,8 +161,8 @@ DATE
 This block displays the date and links to Google Calendar.
 {% endcomment %}
 {% if page.humandate %}
-<p id="when">
-  <strong>When:</strong>
+<p id="Quando">
+  <strong>Quando:</strong>
   {{page.humandate}}; {{page.humantime}}
   {% include workshop_calendar.html %}
 </p>
@@ -180,13 +176,12 @@ Modify the block below if there are any special requirements.
 <p id="requirements">
   <strong>Requirements:</strong>
   {% if online == "false" %}
-    Participants must bring a laptop with a
-    Mac, Linux, or Windows operating system (not a tablet, Chromebook, etc.) that they have administrative privileges on.
+  #add here the requirements
   {% else %}
     Participants must have access to a computer with a
     Mac, Linux, or Windows operating system (not a tablet, Chromebook, etc.) that they have administrative privileges on.
   {% endif %}
-  They should have a few specific software packages installed (listed <a href="#setup">below</a>).
+  #add here the packages (listed <a href="#setup">below</a>).
 </p>
 
 {% comment %}
@@ -196,32 +191,16 @@ Modify the block below if there are any barriers to accessibility or
 special instructions.
 {% endcomment %}
 <p id="accessibility">
-  <strong>Accessibility:</strong>
-  We are committed to making this workshop
-  accessible to everybody. 
+<strong>Acessibilidade:</strong>
+Estamos comprometidos em tornar este workshop acessível para todos.
 {% if online == "false" %}
-  The workshop organizers have checked that:
-<p>
-  <ul>
-    <li>The room is wheelchair / scooter accessible.</li>
-    <li>Accessible restrooms are available.</li>
-  </ul>
-{% endif %}
-</p>
-<p>We are dedicated to providing a positive and accessible learning environment for all. 
-  We do not require participants to provide documentation of disabilities or disclose any unnecessary personal information. 
-  However, we do want to help create an inclusive, accessible experience for all participants. 
-  We encourage you to share any information that would be helpful to make your Carpentries experience accessible.
-  To request an accommodation for this workshop, please fill out the 
-  <a href="https://carpentries.typeform.com/to/B2OSYaD0">accommodation request form</a>.
-  If you have questions or need assistance with the accommodation form please <a href="mailto:team@carpentries.org">email us</a>.
+Os organizadores do workshop verificaram que:
+<p> <ul> <li>A sala é acessível para cadeiras de rodas / scooters.</li> <li>Banheiros acessíveis estão disponíveis.</li> </ul> {% endif %} </p> <p>Estamos dedicados a oferecer um ambiente de aprendizado positivo e acessível para todos. Não exigimos que os participantes forneçam documentação de deficiências ou revelem informações pessoais desnecessárias. No entanto, queremos ajudar a criar uma experiência inclusiva e acessível para todos os participantes. Incentivamos você a compartilhar qualquer informação que seja útil para tornar sua experiência no Carpentries acessível. Se você tiver dúvidas ou precisar de assistência com o formulário de acomodação, por favor <a href="mailto:bioinfoufmg@gmail.com">envie um e-mail para nós</a>. 
 </p>
 <p>
-  <a href="https://glosario.carpentries.org/">Glosario</a> is a multilingual glossary 
-  for computing and data science terms. The glossary helps 
-  learners attend workshops and use our lessons to make sense of computational and programming jargon written in English by offering it 
-  in their native language. Translating data science terms also provides a teaching tool for Carpentries Instructors to reduce barriers 
-  for their learners.
+  <a href="https://glosario.carpentries.org/">Glosario</a> É um glossário multilíngue
+para termos de computação e ciência de dados. O glossário ajuda
+os participantes a acompanharem os workshops e utilizarem nossas aulas, facilitando a compreensão de jargões computacionais e de programação escritos em inglês, ao oferecer esses termos em sua língua nativa. Traduzir termos de ciência de dados também serve como uma ferramenta de ensino para os Instrutores do Carpentries, reduzindo barreiras para seus aprendizes.
 </p>
 
 {% comment %}
@@ -231,7 +210,7 @@ Display the contact email address set in the configuration file.
 {% endcomment %}
 <p id="contact">
   <strong>Contact:</strong>
-  Please email
+  Email
   {% if page.email %}
   {% for email in page.email %}
   {% if forloop.last and page.email.size > 1 %}
@@ -251,8 +230,8 @@ Display the contact email address set in the configuration file.
 
 <p id="roles">
   <strong>Roles:</strong>
-  To learn more about the roles at the workshop (who will be doing what),
-  refer to <a href="https://carpentries.org/workshop_faq/#what-are-the-roles-of-everyone-participating-in-a-workshop">our Workshop FAQ</a>.
+ Para saber mais sobre os papéis no workshop (quem fará o quê),
+consulte a <a href="https://carpentries.org/workshop_faq/#what-are-the-roles-of-everyone-participating-in-a-workshop">nossa FAQ do Workshop</a>.
 </p>
 
 {% comment %}
@@ -284,7 +263,7 @@ CODE OF CONDUCT
 <h2 id="code-of-conduct">Code of Conduct</h2>
 
 <p>
-Everyone who participates in Carpentries activities is required to conform to the <a href="https://docs.carpentries.org/topic_folders/policies/code-of-conduct.html">Code of Conduct</a>. This document also outlines how to report an incident if needed.
+Todos que participam das atividades das Carpentries devem cumprir o <a href="https://docs.carpentries.org/topic_folders/policies/code-of-conduct.html">Código de Conduta</a>. Este documento também descreve como relatar um incidente, se necessário.
 </p>
 
 <p class="text-center">
