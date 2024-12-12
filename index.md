@@ -87,15 +87,7 @@ the pitch.
 {% endcomment %}
 
 <p>
-<strong><a href="https://carpentries.org">The Carpentries</a></strong> project comprises the <a
-href="{{site.swc_site}}">Software Carpentry</a>, <a href="{{site.dc_site}}">Data Carpentry</a>, and
-<a href="{{site.lc_site}}">Library Carpentry</a> communities of Instructors, Trainers, Maintainers,
-helpers, and supporters who share a mission to teach foundational computational and data science
-skills to researchers.
-<p align="center">
-  <em>
-  <strong>Want to learn more and stay engaged with The Carpentries?</strong> Carpentries Clippings is The Carpentries' biweekly newsletter, where we share community news, community job postings, and more.
-Sign up to receive future editions and read our full archive: <a href="https://carpentries.org/newsletter/">https://carpentries.org/newsletter/</a>
+<strong><a href="https://carpentries.org">O projeto The Carpentries</a></strong> é composto pelas comunidades <a href="{{site.swc_site}}">Software Carpentry</a>, <a href="{{site.dc_site}}">Data Carpentry</a> e <a href="{{site.lc_site}}">Library Carpentry</a> de Instrutores, Treinadores, Mantenedores, ajudantes e apoiadores que compartilham a missão de ensinar habilidades fundamentais de ciência de dados e computação a pesquisadores.
   </em>
 </p>
 {% if site.carpentry == "swc" %}
