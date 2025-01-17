@@ -1,0 +1,228 @@
+---
+title: "DifferentialExpressionAnalysis"
+author: "Iza"
+date: "2025-01-17"
+output: html_document
+---
+Suggested bibliography:
+original bioc-rnaseq:https://carpentries-incubator.github.io/bioc-rnaseq/
+
+## 5. Differential expression analysis
+Questions:
+* What are the steps performed in a typical differential expression analysis?
+* How does one interpret the output of DESeq2?
+
+Load packages
+```{r}
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+    library(DESeq2)
+    library(ggplot2)
+    library(ExploreModelMatrix)
+    library(cowplot)
+    library(ComplexHeatmap)
+    library(apeglm)
+})
+
+```
+
+Load the data
+```{r}
+se <- readRDS("data/GSE96870_se.rds")
+se <- se[rowSums(assay(se, "counts")) > 5, ]
+```
+
+
+Create the Deseq2 dataset
+```{r}
+dds <- DESeq2::DESeqDataSet(se,
+                            design = ~ sex + time)
+```
+
+Normalization
+```{r}
+dds <- estimateSizeFactors(dds)
+```
+
+Statistical models
+```{r}
+dds <- estimateDispersions(dds)
+
+plotDispEsts(dds)
+```
+
+
+Testing
+```{r}
+dds <- nbinomWaldTest(dds)
+```
+
+Explore especific contrasts
+```{r}
+resTime <- results(dds, contrast = c("time", "Day8", "Day0"))
+summary(resTime)
+```
+
+Independent filtering and log2Fc shrinkage
+```{r}
+plotMA(resTime)
+```
+
+```{r}
+resTimeLfc <- lfcShrink(dds, coef = "time_Day8_vs_Day0", res = resTime)
+plotMA(resTimeLfc)
+```
+
+Visualize a set of genes
+```{r}
+# Transform counts
+vsd <- vst(dds, blind = TRUE)
+
+# Get top DE genes
+genes <- resTime[order(resTime$pvalue), ] |>
+         head(10) |>
+         rownames()
+heatmapData <- assay(vsd)[genes, ]
+
+# Scale counts for visualization
+heatmapData <- t(scale(t(heatmapData)))
+
+# Add annotation
+heatmapColAnnot <- data.frame(colData(vsd)[, c("time", "sex")])
+heatmapColAnnot <- HeatmapAnnotation(df = heatmapColAnnot)
+
+
+# Plot as heatmap
+ComplexHeatmap::Heatmap(heatmapData,
+                        top_annotation = heatmapColAnnot,
+                        cluster_rows = TRUE, cluster_columns = FALSE)
+
+```
+
+Save results
+```{r}
+head(as.data.frame(resTime))
+head(as.data.frame(rowRanges(se)))
+
+temp <- cbind(as.data.frame(rowRanges(se)),
+              as.data.frame(resTime))
+
+write.csv(temp, file = "output/Day8vsDay0.csv")
+```
+
+
+Extra explorationm and design matrixes
+```{r}
+meta <- read.csv("data/GSE96870_coldata_all.csv", row.names = 1)
+meta
+table(meta$time, meta$infection)
+
+table(meta$age)
+```
+
+Visualize design
+```{r}
+vd <- VisualizeDesign(sampleData = meta, 
+                      designFormula = ~ tissue + time + sex)
+vd$cooccurrenceplots
+$`tissue = Cerebellum`
+```
+
+MAles versus females
+```{r}
+## Subset metadata
+meta_noninf_spc <- meta %>% filter(time == "Day0" & 
+                                       tissue == "Spinalcord")
+meta_noninf_spc
+```
+
+```{r}
+## Use ExploreModelMatrix to create a design matrix and visualizations, given 
+## the desired design formula. 
+vd <- VisualizeDesign(sampleData = meta_noninf_spc, 
+                      designFormula = ~ sex)
+vd$designmatrix
+```
+
+Factorial deisgn without and with interactions
+```{r}
+meta_noninf <- meta %>% filter(time == "Day0")
+meta_noninf
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ sex + tissue)
+vd$designmatrix
+```
+
+```{r}
+meta_noninf <- meta %>% filter(time == "Day0")
+meta_noninf
+
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ sex * tissue)
+vd$designmatrix
+
+```
+
+
+Combinin multiple factors
+```{r}
+
+meta_noninf <- meta %>% filter(time == "Day0")
+meta_noninf$sex_tissue <- paste0(meta_noninf$sex, "_", meta_noninf$tissue)
+meta_noninf
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ 0 + sex_tissue)
+vd$designmatrix
+```
+
+Paired deisgn
+```{r}
+meta_fem_day0 <- meta %>% filter(sex == "Female" & 
+                                     time == "Day0")
+
+# ensure that mouse is treated as a categorical variable
+meta_fem_day0$mouse <- factor(meta_fem_day0$mouse)
+
+meta_fem_day0
+
+```
+
+```{r}
+
+vd <- VisualizeDesign(sampleData = meta_fem_day0,
+                      designFormula = ~ mouse + tissue)
+vd$designmatrix
+```
+
+Within and between subject comparissons
+```{r}
+meta_fem_day04 <- meta %>% 
+    filter(sex == "Female" & 
+               time %in% c("Day0", "Day4")) %>%
+    droplevels()
+# ensure that mouse is treated as a categorical variable
+meta_fem_day04$mouse <- factor(meta_fem_day04$mouse)
+
+meta_fem_day04
+```
+
+
+```{r}
+design <- model.matrix(~ mouse, data = meta_fem_day04)
+design <- cbind(design, 
+                Spc.Day0 = meta_fem_day04$tissue == "Spinalcord" & 
+                    meta_fem_day04$time == "Day0",
+                Spc.Day4 = meta_fem_day04$tissue == "Spinalcord" & 
+                    meta_fem_day04$time == "Day4")
+rownames(design) <- rownames(meta_fem_day04)
+design
+```
+
+
+```{r}
+vd <- VisualizeDesign(sampleData = meta_fem_day04 %>%
+                          select(time, tissue, mouse),
+                      designFormula = NULL, 
+                      designMatrix = design, flipCoordFitted = FALSE)
+vd$designmatrix
+```

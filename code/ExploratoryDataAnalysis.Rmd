@@ -1,0 +1,148 @@
+---
+title: "Exploratory_analysis"
+author: "Iza"
+date: "2025-01-17"
+output: html_document
+---
+Suggested bibliography:
+original bioc-rnaseq:https://carpentries-incubator.github.io/bioc-rnaseq/
+
+## 4. Exploratory analysis and quality control
+Questions:
+* Why is exploratory analysis an essential part of an RNA-seq analysis?
+* How should one preprocess the raw count matrix for exploratory analysis?
+* Are two dimensions sufficient to represent your data?
+
+Load packages
+```{r}
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+    library(DESeq2)
+    library(vsn)
+    library(ggplot2)
+    library(ComplexHeatmap)
+    library(RColorBrewer)
+    library(hexbin)
+    library(iSEE)
+})
+```
+
+Read your SE
+```{r}
+se <- readRDS("data/GSE96870_se.rds")
+
+nrow(se)
+```
+
+Remove genes with less than 5 coutns
+```{r}
+# Remove genes/rows that do not have > 5 total counts 
+se <- se[rowSums(assay(se, "counts")) > 5, ]
+nrow(se)
+```
+
+Differences in library sizes
+```{r}
+# Add in the sum of all counts
+
+se$libSize <-  colSums(assay(se))
+
+# Plot the libSize by using R's native pipe |>
+# to extract the colData, turn it into a regular
+# data frame then send to ggplot:
+
+colData(se) |>
+  as.data.frame() |>
+  ggplot(aes(x = Label, y = libSize / 1e6, fill = Group)) + 
+         geom_bar(stat = "identity") + theme_bw() + 
+         labs(x = "Sample", y = "Total count in millions") + 
+         theme(axis.text.x = element_text(angle = 45, hjust = 1, vjust = 1))
+
+```
+
+Estimate size factors using Deseq2
+```{r}
+dds <- DESeq2::DESeqDataSet(se, design = ~ sex + time)
+
+dds <- estimateSizeFactors(dds)
+
+# Plot the size factors against library size
+# and look for any patterns by group:
+
+ggplot(data.frame(libSize = colSums(assay(dds)),
+                  sizeFactor = sizeFactors(dds),
+                  Group = dds$Group),
+       aes(x = libSize, y = sizeFactor, col = Group)) + 
+    geom_point(size = 5) + theme_bw() + 
+    labs(x = "Library size", y = "Size factor")
+```
+
+Transforming the data
+```{r}
+meanSdPlot(assay(dds), ranks = FALSE)
+```
+
+```{r}
+vsd <- DESeq2::vst(dds, blind = TRUE)
+meanSdPlot(assay(vsd), ranks = FALSE)
+
+```
+
+Heatmaps and clustering
+```{r}
+dst <- dist(t(assay(vsd)))
+colors <- colorRampPalette(brewer.pal(9, "Blues"))(255)
+ComplexHeatmap::Heatmap(
+    as.matrix(dst), 
+    col = colors,
+    name = "Euclidean\ndistance",
+    cluster_rows = hclust(dst),
+    cluster_columns = hclust(dst),
+    bottom_annotation = columnAnnotation(
+        sex = vsd$sex,
+        time = vsd$time,
+        col = list(sex = c(Female = "red", Male = "blue"),
+                   time = c(Day0 = "yellow", Day4 = "forestgreen", Day8 = "purple")))
+)
+```
+
+
+PCA
+
+###Iza: Use the Wine analogy to explain PCA?
+
+```{r}
+pcaData <- DESeq2::plotPCA(vsd, intgroup = c("sex", "time"),
+                           returnData = TRUE)
+
+percentVar <- round(100 * attr(pcaData, "percentVar"))
+ggplot(pcaData, aes(x = PC1, y = PC2)) +
+    geom_point(aes(color = sex, shape = time), size = 5) +
+    theme_minimal() +
+    xlab(paste0("PC1: ", percentVar[1], "% variance")) +
+    ylab(paste0("PC2: ", percentVar[2], "% variance")) +
+    coord_fixed() + 
+    scale_color_manual(values = c(Male = "blue", Female = "red"))
+```
+
+Interactive exploratory with iSEE
+```{r}
+## Convert DESeqDataSet object to a SingleCellExperiment object, in order to 
+## be able to store the PCA representation
+sce <- as(dds, "SingleCellExperiment")
+
+## Add PCA to the 'reducedDim' slot
+stopifnot(rownames(pcaData) == colnames(sce))
+reducedDim(sce, "PCA") <- as.matrix(pcaData[, c("PC1", "PC2")])
+
+## Add variance-stabilized data as a new assay
+stopifnot(colnames(vsd) == colnames(sce))
+assay(sce, "vsd") <- assay(vsd)
+
+app <- iSEE(sce)
+shiny::runApp(app)
+
+```
+
+
+
