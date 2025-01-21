@@ -77,6 +77,11 @@ ggplot(data.frame(libSize = colSums(assay(dds)),
     labs(x = "Library size", y = "Size factor")
 ```
 
+Check coefficients
+```{r}
+resultsNames(dds)
+```
+
 Transforming the data
 ```{r}
 meanSdPlot(assay(dds), ranks = FALSE)
