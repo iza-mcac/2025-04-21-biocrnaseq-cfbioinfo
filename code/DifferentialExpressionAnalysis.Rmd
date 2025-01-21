@@ -111,7 +111,10 @@ write.csv(temp, file = "output/Day8vsDay0.csv")
 ```
 
 
-Extra explorationm and design matrixes
+Extra exploration and design matrices:
+
+CARLOS: when should we include this? As a parenthesis before, in the middle of the DE (during the `DESeqDataSet()` part), or after (as it is)? Iza and I talked and think maybe this could be included *after*, but briefly mention it in the `DESeqDataSet(se, design = ~ sex + time)` part. Maybe leave this for after a coffee break, considering how tricky it is.
+
 ```{r}
 meta <- read.csv("data/GSE96870_coldata_all.csv", row.names = 1)
 meta
