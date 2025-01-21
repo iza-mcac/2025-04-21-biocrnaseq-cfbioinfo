@@ -13,7 +13,8 @@
 
 **Ajudantes**:  
 - Hery Paul Granger-Neto  
-- Carlos Machado  
+- Carlos Machado
+- Victor Abdallah 
 
 **Contato**:  
 - iza.mamede@gmail.com  
