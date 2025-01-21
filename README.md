@@ -12,7 +12,7 @@
 - João Paulo P. de Almeida  
 
 **Ajudantes**:  
-- Hery Paul Granger-Neto  
+- Henry Paul Granger-Neto  
 - Carlos Machado
 - Victor Abdallah 
 
