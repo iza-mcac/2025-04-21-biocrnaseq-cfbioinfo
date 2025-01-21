@@ -74,21 +74,23 @@ plotMA(resTimeLfc)
 ```
 
 Visualize a set of genes
+
+CARLOS: they used vsd and resTime (unshrunken res) results for the heatmap, which I don't think makes much sense. Changed it to dds and resTimeLfc (shrunken res); overall looks similar, but expression magnitudes are more accentuated
 ```{r}
 # Transform counts
-vsd <- vst(dds, blind = TRUE)
+# vsd <- vst(dds, blind = TRUE)
 
 # Get top DE genes
-genes <- resTime[order(resTime$pvalue), ] |>
-         head(10) |>
-         rownames()
-heatmapData <- assay(vsd)[genes, ]
+genes <- resTimeLfc[order(resTimeLfc$pvalue), ] |>
+  head(10) |>
+  rownames()
+heatmapData <- assay(dds)[genes, ]
 
 # Scale counts for visualization
 heatmapData <- t(scale(t(heatmapData)))
 
 # Add annotation
-heatmapColAnnot <- data.frame(colData(vsd)[, c("time", "sex")])
+heatmapColAnnot <- data.frame(colData(dds)[, c("time", "sex")])
 heatmapColAnnot <- HeatmapAnnotation(df = heatmapColAnnot)
 
 
