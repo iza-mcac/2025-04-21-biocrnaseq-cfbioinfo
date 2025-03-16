@@ -7,6 +7,7 @@ output: html_document
 
 Suggested bibliography:
 original bioc-rnaseq:https://carpentries-incubator.github.io/bioc-rnaseq/
+Tidybulk: [bioc-rnaseq](https://stemangiola.github.io/tidybulk/)
 
 ## 1. Introduction to RNA-seq
 Questions:
