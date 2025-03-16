@@ -7,6 +7,7 @@ output: html_document
 
 ## 📚 Bibliografia sugerida:
 Repositório original: [bioc-rnaseq](https://carpentries-incubator.github.io/bioc-rnaseq/)
+Tiodybulk: [bioc-rnaseq](https://stemangiola.github.io/tidybulk/)
 
 ---
 
@@ -18,17 +19,14 @@ Repositório original: [bioc-rnaseq](https://carpentries-incubator.github.io/bio
 - Onde encontrar informações sobre genes anotados para um determinado organismo?
 - Quais são as etapas típicas em uma análise de RNA-seq?
 
-### 📌 **Iza:** Isso faremos por meio de slides.
-**Perguntas a incluir nos slides:**  
-- (Complete com perguntas adicionais conforme necessário)
-
 ---
 
 ## 2. Onde encontrar e como baixar dados experimentais?
 
 O conjunto de dados está disponível no **Gene Expression Omnibus (GEO)**, sob o número de acesso **GSE96870**.
 
-### 📌 **Iza:** Abrir o GEO, explicar o que é GEO e demonstrar como baixar os dados.
+Como organizar a sua pasta de trabalho?
+
 ```{r}
 download.file(
     url = "https://github.com/carpentries-incubator/bioc-rnaseq/raw/main/episodes/data/GSE96870_counts_cerebellum.csv", 
