@@ -14,7 +14,9 @@
 **Ajudantes**:  
 - Henry Paul Granger-Neto  
 - Carlos Machado
-- Victor Abdallah 
+- Victor Abdallah
+- Clarisse Rezende
+- Bárbara Marinho
 
 **Contato**:  
 - iza.mamede@gmail.com  
