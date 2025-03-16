@@ -1,0 +1,253 @@
+---
+title: "Análise de Conjunto de Genes"
+author: "Carlos"
+date: "2025-01-22"
+output: 
+  html_document:
+    toc: yes
+    toc_float:
+      smooth_scroll: yes
+---
+
+::: questions
+-   Qual é o objetivo da análise de enriquecimento de conjunto de genes?
+-   O que é o método de análise de super-representação?
+-   Quais são os bancos de dados de conjuntos de genes mais utilizados?
+:::
+
+```{r load-pkg, eval = FALSE, results='hide', message=F, warning=F}
+library(SummarizedExperiment)
+library(DESeq2)
+library(gplots)
+library(microbenchmark)
+library(org.Hs.eg.db)
+library(org.Mm.eg.db)
+library(msigdbr)
+library(clusterProfiler)
+library(enrichplot)
+library(ggplot2)
+library(simplifyEnrichment)
+library(dplyr)
+library(fgsea)
+library(tibble)
+library(topGO)
+```
+
+### Carregar os dados (novamente)
+```{r error = TRUE, eval=F, results='hide', message=F, warning=F}
+library(SummarizedExperiment)
+library(DESeq2)
+
+se <- readRDS("/home/carlosaugustodmm/biocrnaseq_cfbioinfo/GSE96870_se.rds")
+se <- se[rowSums(assay(se, "counts")) > 5, ]
+```
+
+```{r read-data, warning = FALSE}
+library(SummarizedExperiment)
+library(DESeq2)
+
+# Restringir apenas a mRNA (genes codificadores de proteínas)
+se <- se[rowData(se)$gbkey == "mRNA"]
+# Construir um objeto `DESeqDataSet`, especificando o design experimental
+dds <- DESeqDataSet(se, design = ~ sex + time)
+# Executar análise com DESeq2
+dds <- DESeq(dds)
+# Obter resultados do DESeq2, aqui queremos apenas Macho vs Fêmea na variável "sex"
+resSex <- results(dds, contrast = c("sex", "Male", "Female"))
+# Extrair genes diferencialmente expressos com padj < 0.05
+sexDE <- as.data.frame(subset(resSex, padj < 0.05))
+# Lista de genes diferencialmente expressos
+sexDEgenes <- rownames(sexDE)
+```
+
+```{r xy-genes}
+geneGR <- rowRanges(se) # Objeto `GRanges`
+totalGenes <- rownames(se)
+XYGeneSet <- totalGenes[as.vector(seqnames(geneGR)) %in% c("X", "Y")]
+head(XYGeneSet)
+length(XYGeneSet)
+```
+
+### Visualizar interseção com diagrama de Venn
+```{r venn-diagram, fig.width = 5*2, fig.height = 5*2, dpi = 72*2}
+library(gplots)
+venn(list("sexDEgenes"  = sexDEgenes, 
+               "Conjunto de genes XY" = XYGeneSet))
+```
+
+## Teste exato de Fisher
+
+### Tabela de contingência 2x2:
+
+|            | No conjunto de genes | Fora do conjunto de genes | Total    |
+|------------|-----------------|---------------------|----------|
+| **DE**     | $n_{11}$        | $n_{12}$            | $n_{1+}$ |
+| **Não DE** | $n_{21}$        | $n_{22}$            | $n_{2+}$ |
+| **Total**  | $n_{+1}$        | $n_{+2}$            | $n$      |
+
+*Nota: Substituímos `+` por `0` nos nomes das variáveis no R. Os genes devem ser únicos em cada vetor.*
+
+```{r fisher-1}
+n    <- nrow(se)
+n_01 <- length(XYGeneSet)
+n_10 <- length(sexDEgenes)
+n_11 <- length(intersect(sexDEgenes, XYGeneSet))
+```
+
+Outros valores podem ser obtidos por:
+
+```{r fisher-2}
+n_12 <- n_10 - n_11
+n_21 <- n_01 - n_11
+n_20 <- n    - n_10
+n_02 <- n    - n_01
+n_22 <- n_02 - n_12
+```
+
+### Todos os valores são:
+```{r fisher-3}
+matrix(c(n_11, n_12, n_10, n_21, n_22, n_20, n_01, n_02, n),
+    nrow = 3, byrow = TRUE)
+```
+
+### Existe uma dependência entre um gene ser DE e estar no *conjunto de genes XY*?
+```{r fisher-test}
+t <- fisher.test(matrix(c(n_11, n_12, n_21, n_22), nrow = 2, byrow = TRUE),
+    alternative = "greater")
+t$p.value
+```
+
+Na saída, podemos ver que o *p*-valor é muito pequeno, então podemos concluir que os genes DE têm um forte enriquecimento no *conjunto de genes XY*.
+
+## Recursos de conjuntos de genes
+
+### topGO 
+```{r shrinking}
+res_8_vs_0_shrunk <- lfcShrink(dds,
+                               coef="time_Day8_vs_Day0", type="apeglm") 
+timeDE_shrunk <- as.data.frame(res_8_vs_0_shrunk)
+```
+
+```{r rank and find ids}
+# Classificação de genes por log2FC:
+rankedGenes <- timeDE_shrunk$log2FoldChange
+names(rankedGenes) <- rownames(timeDE_shrunk)
+
+# Extrair símbolos dos genes classificados e mapear
+entrezIDs <- mapIds(org.Mm.eg.db,
+  keys = names(rankedGenes),
+  column = "ENTREZID",
+  keytype = "SYMBOL",
+  multiVals = "first")
+names(rankedGenes) <- entrezIDs
+rankedGenes <- rankedGenes[!is.na(names(rankedGenes))] # Remover NAs
+
+# Mapeamento GO-para-EntrezIDs
+GO_2_genes <- as.list(org.Mm.egGO2ALLEGS)
+```
+
+```{r create topGO object and summarize}
+GOdata <- new("topGOdata",
+  ontology = "BP",
+  allGenes = rankedGenes,
+  geneSelectionFun = function(x) abs(x) > 1.5,
+  annot = annFUN.GO2genes,
+  GO2genes = GO_2_genes)
+
+resultFisher <- runTest(GOdata, algorithm = "classic", statistic = "fisher")
+
+topGOtable <- GenTable(GOdata, classicFisher = resultFisher, topNodes = length(resultFisher@score))
+```
+
+### Plotagem
+```{r topGO plot (bad example)}
+topGOtable$classicFisher <- as.numeric(topGOtable$classicFisher)
+topGOtable$EnrichmentRatio <- topGOtable$Significant / topGOtable$Expected
+
+topGOtable_top <- topGOtable %>%
+  as_tibble() %>%
+  filter(classicFisher < 0.05) %>%
+  arrange(classicFisher) %>%
+  slice_head(n = 24)
+
+ggplot(topGOtable_top, aes(x= -log10(classicFisher), y=(reorder(Term, -log10(classicFisher))))) +
+  geom_col(aes(fill=EnrichmentRatio)) +
+  labs(x="-log10(p-valor)", y="Via metabólica") +
+  theme_minimal()
+```
+
+### Conjuntos de genes do MSigDB
+
+-   Banco de dados de conjuntos de genes curados manualmente
+-   As coleções podem ser visualizadas em: [MSigDB](https://www.gsea-msigdb.org/gsea/msigdb/index.jsp)
+
+Verificar quais organismos são suportados e quais coleções de conjuntos de genes são fornecidas:
+
+```{r msigdbr}
+library(msigdbr)
+msigdbr_species()
+msigdbr_collections()
+```
+
+### fgsea
+
+```{r downloading msigdbr C2 gene set}
+library(fgsea)
+library(msigdbr)
+library(tibble)
+library(dplyr)
+
+# Testando com resultados reduzidos
+# Obter conjunto de genes C2:
+gene_sets_C2 <- msigdbr(category = "C2", species = "mouse")
+head(gene_sets_C2)
+
+# Configurando como um formato de lista para uso com fgsea:
+gene_sets_C2_list <- gene_sets_C2 %>%
+  group_by(gs_name) %>%
+  summarize(genes = list(gene_symbol)) %>%
+  deframe() # Converte um dataframe de duas colunas em uma lista nomeada
+```
+
+-   Redução dos resultados e uso de `fgsea()`
+
+```{r shrink and enrichment}
+# Repetindo os resultados:
+res_8_vs_0_shrunk <- lfcShrink(dds,
+                               coef="time_Day8_vs_Day0", type="apeglm") 
+timeDE_shrunk <- as.data.frame(res_8_vs_0_shrunk)
+
+timeDE_shrunk_rank <- timeDE_shrunk$log2FoldChange # Criando um vetor
+names(timeDE_shrunk_rank) <- rownames(timeDE_shrunk) # Definir nomes das linhas
+head(timeDE_shrunk_rank)
+
+fgseaRes <- fgsea(pathways = gene_sets_C2_list,
+               stats = timeDE_shrunk_rank,
+               maxSize = 400)
+
+fgseaRes %>% # Classificar os 10 principais |NES|
+    arrange(desc(abs(NES)))
+```
+
+-   Plotagem do enriquecimento
+
+```{r plot}
+fgseaRes_top_point <- fgseaRes %>%
+  as_tibble() %>%
+  filter(padj < 0.05) %>%
+  arrange(desc(NES)) %>%
+  slice_head(n = 12) %>%
+  bind_rows(fgseaRes %>% # Para organizar tanto os mais regulados para cima quanto para baixo
+      as_tibble() %>%
+      filter(padj < 0.05) %>%
+      arrange(NES) %>%
+      slice_head(n = 12))
+
+ggplot(fgseaRes_top_point, aes(y=(reorder(pathway, NES)), x=0)) +
+  geom_point(aes(fill = NES, size = size), shape = 21) +
+  scale_fill_gradient2(low = "#327eba", high = "#e06663", midpoint = 0) +
+  labs(y="Via metabólica", x=NULL)+
+  theme_minimal() +
+  scale_x_continuous(breaks = NULL)
+```
+

@@ -1,0 +1,191 @@
+---
+title: "Análise de Expressão Diferencial"
+author: "Iza"
+date: "2025-01-17"
+output: html_document
+---
+
+### Bibliografia sugerida:
+[Original bioc-rnaseq](https://carpentries-incubator.github.io/bioc-rnaseq/)
+
+## 5. Análise de Expressão Diferencial
+
+### Perguntas:
+* Quais são as etapas realizadas em uma análise típica de expressão diferencial?
+* Como interpretar a saída do DESeq2?
+
+### Carregar pacotes
+```{r}
+suppressPackageStartupMessages({
+    library(SummarizedExperiment)
+    library(DESeq2)
+    library(ggplot2)
+    library(ExploreModelMatrix)
+    library(cowplot)
+    library(ComplexHeatmap)
+    library(apeglm)
+})
+```
+
+### Carregar os dados
+```{r}
+se <- readRDS("data/GSE96870_se.rds")
+se <- se[rowSums(assay(se, "counts")) > 5, ]
+```
+
+### Criar o conjunto de dados do DESeq2
+```{r}
+dds <- DESeq2::DESeqDataSet(se, design = ~ sex + time)
+```
+
+### Normalização
+```{r}
+dds <- estimateSizeFactors(dds)
+```
+
+### Modelos estatísticos
+```{r}
+dds <- estimateDispersions(dds)
+plotDispEsts(dds)
+```
+
+### Testes estatísticos
+```{r}
+dds <- nbinomWaldTest(dds)
+```
+
+### Explorar contrastes específicos
+```{r}
+resTime <- results(dds, contrast = c("time", "Day8", "Day0"))
+summary(resTime)
+```
+
+### Filtragem independente e ajuste de log2FC
+```{r}
+plotMA(resTime)
+```
+
+```{r}
+resTimeLfc <- lfcShrink(dds, coef = "time_Day8_vs_Day0", res = resTime)
+plotMA(resTimeLfc)
+```
+
+### Visualizar um conjunto de genes
+
+#### CARLOS: Eles usaram `vsd` e `resTime` (sem shrinkage) para o heatmap, o que não faz muito sentido. Alterei para `dds` e `resTimeLfc` (com shrinkage); no geral, parece semelhante, mas as magnitudes da expressão estão mais acentuadas.
+```{r}
+# Transformar contagens
+# vsd <- vst(dds, blind = TRUE)
+
+# Obter os principais genes diferencialmente expressos
+genes <- resTimeLfc[order(resTimeLfc$pvalue), ] |>
+  head(10) |>
+  rownames()
+heatmapData <- assay(dds)[genes, ]
+
+# Escalar contagens para visualização
+heatmapData <- t(scale(t(heatmapData)))
+
+# Adicionar anotações
+heatmapColAnnot <- data.frame(colData(dds)[, c("time", "sex")])
+heatmapColAnnot <- HeatmapAnnotation(df = heatmapColAnnot)
+
+# Gerar heatmap
+ComplexHeatmap::Heatmap(heatmapData,
+                        top_annotation = heatmapColAnnot,
+                        cluster_rows = TRUE, cluster_columns = FALSE)
+```
+
+### Salvar resultados
+```{r}
+temp <- cbind(as.data.frame(rowRanges(se)),
+              as.data.frame(resTime))
+write.csv(temp, file = "output/Day8vsDay0.csv")
+```
+
+### Exploração extra e matrizes de design
+
+#### CARLOS: Quando devemos incluir isso? Como um parêntese antes, no meio da análise de expressão diferencial (durante `DESeqDataSet()`), ou depois (como está agora)? Iza e eu conversamos e achamos que talvez isso devesse ser incluído *depois*, mas mencionado brevemente na parte `DESeqDataSet(se, design = ~ sex + time)`. Talvez deixar isso para depois de um intervalo de café, considerando a complexidade do tema.
+```{r}
+meta <- read.csv("data/GSE96870_coldata_all.csv", row.names = 1)
+meta
+table(meta$time, meta$infection)
+table(meta$age)
+```
+
+### Visualizar o design
+```{r}
+vd <- VisualizeDesign(sampleData = meta, 
+                      designFormula = ~ tissue + time + sex)
+vd$cooccurrenceplots
+```
+
+### Comparação entre machos e fêmeas
+```{r}
+meta_noninf_spc <- meta %>% filter(time == "Day0" & tissue == "Spinalcord")
+meta_noninf_spc
+```
+```{r}
+vd <- VisualizeDesign(sampleData = meta_noninf_spc, 
+                      designFormula = ~ sex)
+vd$designmatrix
+```
+
+### Design fatorial com e sem interações
+```{r}
+meta_noninf <- meta %>% filter(time == "Day0")
+meta_noninf
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ sex + tissue)
+vd$designmatrix
+```
+
+```{r}
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ sex * tissue)
+vd$designmatrix
+```
+
+### Combinando múltiplos fatores
+```{r}
+meta_noninf$sex_tissue <- paste0(meta_noninf$sex, "_", meta_noninf$tissue)
+vd <- VisualizeDesign(sampleData = meta_noninf, 
+                      designFormula = ~ 0 + sex_tissue)
+vd$designmatrix
+```
+
+### Design pareado
+```{r}
+meta_fem_day0 <- meta %>% filter(sex == "Female" & time == "Day0")
+meta_fem_day0$mouse <- factor(meta_fem_day0$mouse)
+meta_fem_day0
+```
+
+```{r}
+vd <- VisualizeDesign(sampleData = meta_fem_day0,
+                      designFormula = ~ mouse + tissue)
+vd$designmatrix
+```
+
+### Comparação dentro e entre sujeitos
+```{r}
+meta_fem_day04 <- meta %>% filter(sex == "Female" & time %in% c("Day0", "Day4")) %>% droplevels()
+meta_fem_day04$mouse <- factor(meta_fem_day04$mouse)
+meta_fem_day04
+```
+
+```{r}
+design <- model.matrix(~ mouse, data = meta_fem_day04)
+design <- cbind(design, 
+                Spc.Day0 = meta_fem_day04$tissue == "Spinalcord" & meta_fem_day04$time == "Day0",
+                Spc.Day4 = meta_fem_day04$tissue == "Spinalcord" & meta_fem_day04$time == "Day4")
+rownames(design) <- rownames(meta_fem_day04)
+design
+```
+
+```{r}
+vd <- VisualizeDesign(sampleData = meta_fem_day04 %>% select(time, tissue, mouse),
+                      designFormula = NULL, 
+                      designMatrix = design, flipCoordFitted = FALSE)
+vd$designmatrix
+```
