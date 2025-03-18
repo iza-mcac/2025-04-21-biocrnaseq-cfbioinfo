@@ -1,7 +1,7 @@
 # Análise de RNA-seq com o BioConductor
 
 **Local**: Universidade Federal de Minas Gerais  
-**Endereço**: Centro de Atividades Didáticas 1 - Auditório Nobre, Av. Pres. Antônio Carlos, 6627 - Pampulha, Belo Horizonte - MG, 31270-901  
+**Endereço**: Centro de Atividades Didáticas 2 - Laboratorio LAICO. Terceiro andar sala 307
 **País**: Brasil  
 **Língua**: Português  
 
